@@ -1,6 +1,6 @@
 //      http://localhost:9001
 
-
+//https://wyrmhol2.herokuapp.com/
 
 const bodyParser = require('body-parser')
 const express = require('express')
@@ -27,6 +27,10 @@ var nu = false
 var nd = false
 var nl = false
 var nr = false
+var last = u
+var rndm = 0
+var closestfx = 100
+var closestfy = 100
 //var segs = [][]
 //var food = [][]
 
@@ -112,12 +116,74 @@ app.post('/move', (request, response) => {
 	if (wy == by-1) {
 		nd = true
 	}
+	
+	/*
+	if (last == 'right') {
+		nr = true
+	}
+	if (last == 'left') {
+		nl = true
+	}
+	if (last == 'up') {
+		nu = true
+	}
+	if (last == 'down') {
+		nd = true
+	}
+	*/
+	
+	rndm = Math.floor((Math.random() * 3) + 1);
+	
+	var picked = false
+	
+	while (!picked) {
+		rndm = Math.floor((Math.random() * 4));
+		if (rndm == 0 && !nu) {
+			if (segs[wy-1][wx] != 1) {
+				m = u
+				picked = true
+			}
+		} else if (rndm == 1 && !nr) {
+			if (segs[wy][wx+1] != 1) {
+				m = r
+				picked = true
+			}
+		} else if (rndm == 2 && !nd) {
+			if (segs[wy+1][wx] != 1) {
+				m = d
+				picked = true
+			}
+		} else if (rndm == 3 && !nl) {
+			if (segs[wy][wx-1] != 1) {
+				m = l
+				picked = true
+			}
+		}
+	}
+	
+	
+	/*
+	for (var y=0; y<by; y++){
+		for (var x=0; x<bx; x++){
+		  (if segs[x][y] == 2) {
+		  	if (Math.abs(wx-x) <= closestfx) {
+		  		closestfx = x
+		  	}
+		  	if (Math.abs(wy-y) <= closestfy) {
+		  		closestfy = y
+		  	}
+		  }
+		}
+	}
+	*/
+	
+	
 	//test = request.body.board.snakes[0].body[0]
 	
 	
 	
 	
-	console.log(wx)
+	//console.log(segs)
 	
 	
 	
@@ -131,7 +197,8 @@ app.post('/move', (request, response) => {
   const data = {
     move: m, // one of: ['up','down','left','right']
   }
-  
+	last = m
+  console.log(last)
   return response.json(data)
 })
 
