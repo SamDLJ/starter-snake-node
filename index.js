@@ -132,7 +132,7 @@ app.post('/move', (request, response) => {
 	}
 	*/
 	
-	rndm = Math.floor((Math.random() * 3) + 1);
+	//rndm = Math.floor((Math.random() * 3) + 1);
 	
 	var picked = false
 	
