@@ -31,6 +31,7 @@ var last = u
 var rndm = 0
 var closestfx = 100
 var closestfy = 100
+var timer = 7
 //var segs = [][]
 //var food = [][]
 
@@ -53,7 +54,7 @@ app.post('/start', (request, response) => {
 
   // Response data
   const data = {
-    color: '#000000',
+    color: '#666333',
   }
 
   return response.json(data)
@@ -104,6 +105,8 @@ app.post('/move', (request, response) => {
 	wx = request.body.you.body[0].x
 	wy = request.body.you.body[0].y
 	
+	nl = nr = nu = nd = false
+	
 	if (wx == 0) {
 		nl = true
 	}
@@ -117,6 +120,15 @@ app.post('/move', (request, response) => {
 		nd = true
 	}
 	
+	if (last == 'up') {
+		m = r
+	} else if ( last == 'right') {
+		m = d
+	} else if ( last == 'down') {
+		m = l
+	} else if ( last == 'left') {
+		m = u
+	}
 	/*
 	if (last == 'right') {
 		nr = true
@@ -135,8 +147,8 @@ app.post('/move', (request, response) => {
 	//rndm = Math.floor((Math.random() * 3) + 1);
 	
 	var picked = false
-	
-	while (!picked) {
+	/*
+	while (!picked && ) {
 		rndm = Math.floor((Math.random() * 4));
 		if (rndm == 0 && !nu) {
 			if (segs[wy-1][wx] != 1) {
@@ -160,7 +172,45 @@ app.post('/move', (request, response) => {
 			}
 		}
 	}
-	
+	*/
+	/*
+	if (segs[wy-1][wx] != 1 && wy-1 >= 0) {
+			m = u
+			//picked = true
+		}
+	} else if (segs[wy][wx+1] != 1 && wx+1 <= bx-1) {
+			m = r
+			//picked = true
+		}
+	} else if (segs[wy+1][wx] != 1 && wy+1 <= by-1) {
+			m = d
+			//picked = true
+		}
+	} else if (segs[wy][wx-1] != 1 && wx-1 >= 0) {
+			m = l
+			//picked = true
+		}
+	}
+	*/
+	/*
+	if (segs[wx-1][wy] != 1 && wx-1 >= 0) {
+			m = l
+			//picked = true
+		}
+	} else if (segs[wx][wy+1] != 1 && wy+1 <= by-1) {
+			m = d
+			//picked = true
+		}
+	} else if (segs[wx+1][wy] != 1 && wx+1 <= bx-1) {
+			m = r
+			//picked = true
+		}
+	} else if (segs[wx][wy-1] != 1 && wy-1 >= 0) {
+			m = u
+			//picked = true
+		}
+	}
+	*/
 	
 	/*
 	for (var y=0; y<by; y++){
