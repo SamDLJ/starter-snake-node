@@ -34,6 +34,7 @@
 
 */
 
+
 const bodyParser = require('body-parser')
 const express = require('express')
 const logger = require('morgan')
@@ -50,6 +51,7 @@ const r = 'right'
 const l = 'left'
 var m = r
 var job = 'x'
+
 //var bx = 11
 //var by = 11
 var Board
@@ -193,6 +195,14 @@ function random_queue() {
 }
 */
 
+var closestfx = 100
+var closestfy = 100
+var timer = 7
+//var segs = [][]
+//var food = [][]
+
+
+
 // For deployment to Heroku, the port needs to be set using ENV, so
 // we check for the port number in process.env
 app.set('port', (process.env.PORT || 9001))
@@ -222,6 +232,7 @@ app.post('/move', (request, response) => {
   // NOTE: Do something here to generate your move
   // ------------------------------------------------
 	//b = request.body.board
+<<<<<<< HEAD
 	 
 	//console.log(bx)
 	/*
@@ -433,6 +444,7 @@ app.post('/move', (request, response) => {
 	printboard(Board);
 	//printboard(BoardCopy);
 	//console.log(BoardCopy);
+
 	// ------------------------------------------------
 	
   // Response data
@@ -440,7 +452,7 @@ app.post('/move', (request, response) => {
     move: m, // one of: ['up','down','left','right']
   }
 	last = m
-  // console.log(request.body)
+
   return response.json(data)
 })
 
