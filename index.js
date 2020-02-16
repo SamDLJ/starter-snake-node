@@ -45,24 +45,21 @@ const {
   genericErrorHandler,
   poweredByHandler
 } = require('./handlers.js')
-const u = 'up'
-const d = 'down'
-const r = 'right'
-const l = 'left'
-var m = r
+
+var m = 'up'
 var job = 'x'
 
 //var bx = 11
 //var by = 11
 var Board
-var BoardCopy
+//var BoardCopy
 var wx
 var wy
 var nu = false
 var nd = false
 var nl = false
 var nr = false
-var last = u
+//var last = u
 var rndm = 0
 var distance
 var do_nothing = 0
@@ -70,15 +67,20 @@ var do_nothing = 0
 var closestfx
 var closestfy
 var manhattan
+var wlength
 //var segs = [][]
 //var food = [][]
 
-function printboard(board) {
+// prints from 2d array
+function printboard(board, x=-1, y=-1, change=".") {
 	var boardstr = ""
-	//console.log("-----------------------------");
 	for (var i = 0; i < board.length; i++) {
 		for (var j = 0; j < board[i].length; j++){
-			boardstr += board[i][j]+" ";
+			if (x == j && y == i) {
+				boardstr += change+" ";
+			} else {
+				boardstr += board[i][j]+" ";
+			}
 		}
 		boardstr += "\n";
 	}
@@ -94,7 +96,7 @@ function print_board(boardstring, width, height) {
 	console.log(boardstr)
 }
 
-// use BEFORE dfs. Takes in 2d array (board)
+// use BEFORE dfs. Takes in 2d array (board) and converts to a string representation
 function board_string(board, x, y) {
 	var boardstr = ""
 	for (var i = 0; i < board.length; i++) {
@@ -105,6 +107,7 @@ function board_string(board, x, y) {
 	}
 	return boardstr;
 }
+
 
 function replaceAt(string, index, replacement) {
     return string.substr(0, index) + replacement + string.substr(index + replacement.length);
@@ -126,6 +129,27 @@ function board_string_edit(boardstring, width, x, y, new_symbol="") {
 		
 	}
 	return boardstr;
+}
+
+var moved = {
+	"up": ["up", "left", "right"],
+	"left": ["up", "left", "down"],
+	"down": ["left", "down", "right"],
+	"right": ["up", "down", "right"]
+}
+
+var chmove = {
+	"up": ["down", "left", "right"],
+	"left": ["up", "right", "down"],
+	"down": ["left", "up", "right"],
+	"right": ["up", "down", "left"]
+}
+
+var mstr = {
+	"up": 'U',
+	"left": 'L',
+	"down": 'D',
+	"right": 'R'
 }
 
 
@@ -161,39 +185,78 @@ function safe_right(board, sx, sy){
 	return (sx+1 < board[0].length && (board[sy][sx+1] == '.' || board[sy][sx+1] == 'O' || board[sy][sx+1] == 'o'));
 }
 
+// checks if that space is safe
+function safe(board, sx, sy, m) {
+	if (m == 'up') {
+		return (sy-1 >= 0 && (board[sy-1][sx] == '.' || board[sy-1][sx] == 'O' || board[sy-1][sx] == 'o'));
+	} else if (m == 'left') {
+		return (sx-1 >= 0 && (board[sy][sx-1] == '.' || board[sy][sx-1] == 'O' || board[sy][sx-1] == 'o'));
+	} else if (m == 'down') {
+		return (sy+1 < board.length && (board[sy+1][sx] == '.' || board[sy+1][sx] == 'O' || board[sy+1][sx] == 'o'));
+	} else if (m == 'right') {
+		return (sx+1 < board[0].length && (board[sy][sx+1] == '.' || board[sy][sx+1] == 'O' || board[sy][sx+1] == 'o'));
+	}
+}
+
+// checks the closest food. if close enough, gotta check spaces around it
+function food_nearby(board, sx, sy, fx, fy) {
+	
+}
 
 
-/* needs some work
+
+/* 
+		DFS to check for safe directions. Checks to see if the number of spaces in that
+		direction is more than the snake length.
+		Need to track snake tail as well, and decide to change to '.' or keep it '#' depending on if it
+		runs into food on that recursive 'frame'
 */
-function dfs(board, sx, sy, m, depth) {
+// let vs var?
+
+function dfs(board, sx, sy, m, depth, repstr) {
+	// base case
 	if (depth == 0) {
+		//console.log("O "+repstr);
 		return true;
 	}
-	board_string
-	// use board strings instead of 2d arrays.
-	// change string version of board[sx][sy] to '#';
-	if (m == 'up' && safe_up(board, sx, sy)) {
-		return (dfs(board, sx, sy-1, 'up', depth-1))
+	
+	// make copy so original is not changed. use let?
+	let new_board = arrayClone(board); 
+	new_board[sy][sx] = "#";
+	
+	if (m == 'up' && safe_up(new_board, sx, sy)) {
+			return (
+				dfs(new_board, sx, sy-1, 'up', depth-1, repstr+'U') ||
+				dfs(new_board, sx, sy-1, 'left', depth-1, repstr+'L') ||
+				dfs(new_board, sx, sy-1, 'right', depth-1, repstr+'R')
+			);
 	} 
-	if (m == 'left' && safe_left(board, sx, sy)) {
-		return (dfs(board, sx-1, sy, 'left', depth-1))
+	else if (m == 'left' && safe_left(new_board, sx, sy)) {
+			return (
+				dfs(new_board, sx-1, sy, 'left', depth-1, repstr+'L') ||
+				dfs(new_board, sx-1, sy, 'up', depth-1, repstr+'U') ||
+				dfs(new_board, sx-1, sy, 'down', depth-1, repstr+'D')
+			);
 	}
-	if (m == 'down' && safe_down(board, sx, sy)) {
-		return (dfs(board, sx, sy+1, 'down', depth-1))
+	else if (m == 'down' && safe_down(new_board, sx, sy)) {
+			return (
+				dfs(new_board, sx, sy+1, 'down', depth-1, repstr+'D') ||
+				dfs(new_board, sx, sy+1, 'left', depth-1, repstr+'L') ||
+				dfs(new_board, sx, sy+1, 'right', depth-1, repstr+'R')
+			);
 	}
-	if (m == 'right' && safe_right(board, sx, sy)) {
-		return (dfs(board, sx+1, sy, 'right', depth-1))
+	else if (m == 'right' && safe_right(new_board, sx, sy)) {
+			return (
+				dfs(new_board, sx+1, sy, 'right', depth-1, repstr+'R') ||
+				dfs(new_board, sx+1, sy, 'up', depth-1, repstr+'U') ||
+				dfs(new_board, sx+1, sy, 'down', depth-1, repstr+'D')
+			);
 	}
+	//console.log("X "+repstr);
 	return false;
 }
 
 
-/*
-function random_queue() {
-	q = Math.floor(Math.random() * );
-	if (q)
-}
-*/
 
 var closestfx = 100
 var closestfy = 100
@@ -221,7 +284,7 @@ app.post('/start', (request, response) => {
 
   // Response data
   const data = {
-    color: '#666333',
+    color: '#000000',
   }
 
   return response.json(data)
@@ -232,7 +295,6 @@ app.post('/move', (request, response) => {
   // NOTE: Do something here to generate your move
   // ------------------------------------------------
 	//b = request.body.board
-<<<<<<< HEAD
 	 
 	//console.log(bx)
 	/*
@@ -261,13 +323,7 @@ app.post('/move', (request, response) => {
 		- trap smaller snakes: in the corner, make a
 	*/
 	
-	// food = *
-	// 
-	// 
-	nu = false;
-	nd = false;
-	nl = false;
-	nr = false;
+	
 	
 	var sx = 0;
 	var sy = 0;
@@ -283,8 +339,8 @@ app.post('/move', (request, response) => {
 		}
 	}
 	
-	
-	// number of SNAKES left, and their positions
+	// number of SNAKES left, and their positions.
+	// place on board
 	numS = request.body.board.snakes.length;
 	for (var i=0; i<numS; i++) {
 		slen = request.body.board.snakes[i].body.length;
@@ -301,12 +357,13 @@ app.post('/move', (request, response) => {
 				Board[sy][sx] = "#";
 			}
 		}
-		
 	}
 	
 	// Location of Wyrmhol
 	wx = request.body.you.body[0].x;
 	wy = request.body.you.body[0].y;
+	
+	
 	
 	
 	distance = 100;
@@ -327,131 +384,179 @@ app.post('/move', (request, response) => {
 	
 	Board[closestfy][closestfx] = "O";
 	
+	wlength = request.body.you.body.length;
+	if (wlength >= 20) {
+		wlength = 20;
+	}
+	//wlength = 2;
+	tx = request.body.you.body[wlength-1].x;
+	ty = request.body.you.body[wlength-1].y;
+	//console.log(tx, ty);
 	
 	
+	
+	// Finding direction for closest food. Can change if not safe later.
 	if (Math.abs(closestfx - wx) > Math.abs(closestfy - wy)) { // horizontal
 		if ((closestfx - wx) < 0) { // left
 			if (safe_left(Board, wx, wy)) {
 				m = 'left';
+				//console.log("wide", m, "toward", closestfx, closestfy);
 			}
 		} else if ((closestfx - wx) > 0) { // right
 			if (safe_right(Board, wx, wy)) {
 				m = 'right';
+				//console.log("wide", m, "toward", closestfx, closestfy);
 			}
 		} else { //neither, on same column
 			if ((closestfy - wy) < 0) { // up
 				if (safe_up(Board, wx, wy)) {
 					m = 'up';
+					//console.log("wide", m, "toward", closestfx, closestfy);
 				}
 			} else if ((closestfy - wy) > 0) { // down
 				if (safe_down(Board, wx, wy)) {
 					m = 'down';
+					//console.log("wide", m, "toward", closestfx, closestfy);
 				}
 			}
 		}
 	} else if (Math.abs(closestfx - wx) <= Math.abs(closestfy - wy)) { // vertical
 		if ((closestfy - wy) < 0) { // up
-			if (safe_up(Board, wx, wy)) {
+			if (safe_up(Board, wx, wy, 'up', wlength)) {
 				m = 'up';
+				//console.log("wide", m, "toward", closestfx, closestfy);
 			}
 		} else if ((closestfy - wy) > 0) { // down
 			if (safe_down(Board, wx, wy)) {
 				m = 'down';
+				//console.log("wide", m, "toward", closestfx, closestfy);
 			}
 		} else { // neither, on same row
 			if ((closestfx - wx) < 0) { // left
 				if (safe_left(Board, wx, wy)) {
 					m = 'left';
+					//console.log("wide", m, "toward", closestfx, closestfy);
 				}
 			} else if ((closestfx - wx) > 0) { // right
 				if (safe_right(Board, wx, wy)) {
 					m = 'right';
+					//console.log("wide", m, "toward", closestfx, closestfy);
 				}
 			}
 		}
 	}
 	
-	// avoid walls
-	if (m == 'up' && !safe_up(Board, wx, wy)) {
-		if (safe_left(Board, wx, wy)) {
-			m = 'left'
-		} else if (safe_right(Board, wx, wy)) {
-			m = 'right'
-		} else if (safe_down(Board, wx, wy)) {
-			m = 'down'
+	
+	
+	
+	
+	// Last check to avoid walls and . should be taken care of in the dfs.
+	/*
+	if (m == 'up' && !dfs(Board, wx, wy-1, wlength)) {
+		if (dfs(Board, wx-1, wy, wlength)) {
+			m = 'left';
+		} else if (dfs(Board, wx+1, wy, wlength)) {
+			m = 'right';
+		} else if (dfs(Board, wx, wy+1, wlength)) {
+			m = 'down';
+		}
+	} 
+	if (m == 'left' && !dfs(Board, wx-1, wy, wlength)) {
+		if (dfs(Board, wx, wy-1, wlength)) {
+			m = 'up';
+		} else if (dfs(Board, wx, wy+1, wlength)) {
+			m = 'down';
+		} else if (dfs(Board, wx+1, wy, wlength)) {
+			m = 'right';
+		}
+	} 
+	if (m == 'down' && !dfs(Board, wx, wy+1, wlength)) {
+		if (dfs(Board, wx-1, wy, wlength)) {
+			m = 'left';
+		} else if (dfs(Board, wx+1, wy, wlength)) {
+			m = 'right';
+		} else if (dfs(Board, wx, wy-1, wlength)) {
+			m = 'up';
+		}
+	} 
+	if (m == 'right' && !dfs(Board, wx+1, wy, wlength)) {
+		if (dfs(Board, wx, wy-1, wlength)) {
+			m = 'up';
+		} else if (dfs(Board, wx, wy+1, wlength)) {
+			m = 'down';
+		} else if (dfs(Board, wx-1, wy, wlength)) {
+			m = 'left';
 		}
 	}
-	if (m == 'left' && !safe_left(Board, wx, wy)) {
-		if (safe_up(Board, wx, wy)) {
-			m = 'up'
-		} else if (safe_down(Board, wx, wy)) {
-			m = 'down'
-		} else if (safe_right(Board, wx, wy)) {
-			m = 'right'
-		}
+	
+	*/
+	
+	var turn = request.body.turn;
+	
+	// checking dfs
+	
+	if (safe(Board, wx, wy, m)) {
+		//console.log(turn, "move", m, "is SAFE");
+		let pass = 0;
+	} else {
+		//console.log(turn, "move", m, "is NOT safe");
+		let pass = 0;
 	}
-	if (m == 'down' && !safe_down(Board, wx, wy)) {
-		if (safe_left(Board, wx, wy)) {
-			m = 'left'
-		} else if (safe_right(Board, wx, wy)) {
-			m = 'right'
-		} else if (safe_up(Board, wx, wy)) {
-			m = 'up'
+	
+	//console.log("checking dfs...");
+	if (dfs(Board, wx, wy, m, wlength, mstr[m])) {
+		let pass = 0;
+		//printboard(Board);
+	} else {
+		for (var i=0; i<3; i++) {
+			
+			if (dfs(Board, wx, wy, chmove[m][i], wlength, mstr[chmove[m][i]])) {
+				//console.log("before:", m);
+				m = chmove[m][i];
+				//console.log("changed to ", m);
+				i =10; // break out
+			} else {
+				//console.log(chmove[m][i], "NOT safe");
+				let pass = 0;
+			}
 		}
+		
+		//printboard(Board, wx, wy, 'X');
 	}
-	if (m == 'right' && !safe_right(Board, wx, wy)) {
-		if (safe_up(Board, wx, wy)) {
-			m = 'up'
-		} else if (safe_down(Board, wx, wy)) {
-			m = 'down'
-		} else if (safe_left(Board, wx, wy)) {
-			m = 'left'
-		}
-	}
+	
+	
+	
+	
+	// check head collision. if other snakes next to food, avoid
 	
 	// avoid traps by doing a depth-first search. 
 	// if it exceeds own length, then it is safe to go that direction
 	// use a temporary board to be able to modify it inside the dfs
-	BoardCopy = arrayClone(Board);
-	depth = request.body.you.body.length;
-	if (!dfs(BoardCopy, wx, wy, m, depth)) {
-		console.log("!!!!");
-	}
+	// BoardCopy = arrayClone(Board);
+	// depth = request.body.you.body.length;
+	// if (!dfs(BoardCopy, wx, wy, m, depth)) {
+	//	console.log("!!!!");
+	//}
 	
-	/*
-	if (m == 'up') {
-		do_nothing = dfs(BoardCopy, wx, wy, m, depth) // (Board, x, y, count). recursive
-	}
-	BoardCopy = arrayClone(Board);
-	if (m == 'left') {
-		do_nothing = dfs(BoardCopy, wx, wy, m, depth)
-	}
-	BoardCopy = arrayClone(Board);
-	if (m == 'down') {
-		do_nothing = dfs(BoardCopy, wx, wy, m, depth)
-	}
-	BoardCopy = arrayClone(Board);
-	if (m == 'right') {
-		do_nothing = dfs(BoardCopy, wx, wy, m, depth)
-	}
-	*/
 	
-	last = m;
+	// dfs(Board, wx, wy, m, wlength);
+	
 	
 	
 	var picked = false;
 
-	printboard(Board);
+	//printboard(Board);
 	//printboard(BoardCopy);
 	//console.log(BoardCopy);
 
+	
 	// ------------------------------------------------
 	
   // Response data
   const data = {
     move: m, // one of: ['up','down','left','right']
   }
-	last = m
+	last = m;
 
   return response.json(data)
 })
