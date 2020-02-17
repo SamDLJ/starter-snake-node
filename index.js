@@ -1,39 +1,13 @@
-//      http://localhost:9001
-
-//https://wyrmhol2.herokuapp.com/
-
-// "request.body"
-
-
-// localhost:3010 in browser
-// http://localhost:9001/ in "add snake"
-
 /*
-{ game: { id: 'ed3088b6-2860-4365-ae67-52538e55af65' },
-  turn: 99,
-  board:
-   { height: 15,
-     width: 15,
-     food:
-      [ [Object],
-        [Object],
-        [Object],
-        [Object],
-        [Object],
-        [Object],
-        [Object],
-        [Object],
-        [Object],
-        [Object] ],
-     snakes: [ [Object] ] },
-  you:
-   { id: '60f13cc4-c3b4-4b8a-a78b-64c410e02d73',
-     name: 'oscar',
-     health: 1,
-     body: [ [Object], [Object], [Object] ] } }
+		'Wyrmhol'
+
+		https://wyrmhol2.herokuapp.com/
+
+		localhost:3010 in browser
+		http://localhost:9001/ in "add snake"
+
 
 */
-
 
 const bodyParser = require('body-parser')
 const express = require('express')
@@ -48,11 +22,7 @@ const {
 
 var m = 'up'
 var job = 'x'
-
-//var bx = 11
-//var by = 11
 var Board
-//var BoardCopy
 var wx
 var wy
 var nu = false
@@ -68,6 +38,7 @@ var closestfx
 var closestfy
 var manhattan
 var wlength
+var wattack
 //var segs = [][]
 //var food = [][]
 
@@ -152,10 +123,6 @@ var mstr = {
 	"right": 'R'
 }
 
-
-
-//if (i == y && j == x) {
-
 function arrayClone( arr ) {
     var i, copy;
     if( Array.isArray( arr ) ) {
@@ -185,7 +152,7 @@ function safe_right(board, sx, sy){
 	return (sx+1 < board[0].length && (board[sy][sx+1] == '.' || board[sy][sx+1] == 'O' || board[sy][sx+1] == 'o'));
 }
 
-// checks if that space is safe
+// checks if the move m is safe
 function safe(board, sx, sy, m) {
 	if (m == 'up') {
 		return (sy-1 >= 0 && (board[sy-1][sx] == '.' || board[sy-1][sx] == 'O' || board[sy-1][sx] == 'o'));
@@ -199,10 +166,33 @@ function safe(board, sx, sy, m) {
 }
 
 // checks the closest food. if close enough, gotta check spaces around it
-function food_nearby(board, sx, sy, fx, fy) {
-	
+function food_nearby(sx, sy, fx, fy) {
+	return (Math.abs(sx-fx) <= 2 && Math.abs(sy-fy) <= 2);
 }
 
+function head_nearby(snakes, sx, sy, wid) {
+	for (var i=0; i<snakes.length; i++) {
+		if (snakes[i].id != wid) {
+			if (Math.abs(sx-snakes[i].body[0].x) <= 2 && Math.abs(sy-snakes[i].body[0].y) <= 2) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+
+function attack(board, sx, sy, ex, ey) {
+	//printboard(board);
+	return 'up';
+}
+
+// also counts walls made of snakes. use their body 
+function near_wall() {
+	return 'up';
+}
+
+// 
 
 
 /* 
@@ -211,12 +201,10 @@ function food_nearby(board, sx, sy, fx, fy) {
 		Need to track snake tail as well, and decide to change to '.' or keep it '#' depending on if it
 		runs into food on that recursive 'frame'
 */
-// let vs var?
-
 function dfs(board, sx, sy, m, depth, repstr) {
 	// base case
 	if (depth == 0) {
-		//console.log("O "+repstr);
+		//console.log("SAFE: "+repstr);
 		return true;
 	}
 	
@@ -256,22 +244,16 @@ function dfs(board, sx, sy, m, depth, repstr) {
 	return false;
 }
 
-
-
 var closestfx = 100
 var closestfy = 100
 var timer = 7
-//var segs = [][]
-//var food = [][]
-
+var get_food = true
 
 
 // For deployment to Heroku, the port needs to be set using ENV, so
 // we check for the port number in process.env
 app.set('port', (process.env.PORT || 9001))
-
 app.enable('verbose errors')
-
 app.use(logger('dev'))
 app.use(bodyParser.json())
 app.use(poweredByHandler)
@@ -292,41 +274,18 @@ app.post('/start', (request, response) => {
 
 // Handle POST request to '/move'
 app.post('/move', (request, response) => {
-  // NOTE: Do something here to generate your move
-  // ------------------------------------------------
-	//b = request.body.board
-	 
-	//console.log(bx)
-	/*
-			need a plan
-	- starting direction, check surroundings first
-	- check priorities: food? attack? avoid?
-	- algorithm
-	
-	
-	A* algorithm + chicken snake for safety
-	Best first search -
-		go in the direction of the best node?
-	
-	chicken snake:
-		odd number of segments means having a gap in the loop.
-		Maybe alternate between chicken strategy and others?
-		
-	new strategy: running around the food?
-	
-	
-	"probabilities" for areas
-	- where all the heads are (area is probaby safe if the head isn't there)
-	- and how long it takes for each snake to get the nearest food: only grab ones they wont be able to
-	
-	Attack strategies:
-		- trap smaller snakes: in the corner, make a
-	*/
 	
 	
 	
+	
+	
+	
+	// START LOGIC =================================================
+	
+	// --------------- BOARD: FOOD AND SNAKE INFORMATION -----------
 	var sx = 0;
 	var sy = 0;
+	var turn = request.body.turn;
 	
 	// BOARD - width and height
 	bwidth = request.body.board.width;
@@ -341,7 +300,7 @@ app.post('/move', (request, response) => {
 	
 	// number of SNAKES left, and their positions.
 	// place on board
-	numS = request.body.board.snakes.length;
+	var numS = request.body.board.snakes.length;
 	for (var i=0; i<numS; i++) {
 		slen = request.body.board.snakes[i].body.length;
 		for (var seg=0; seg<slen; seg++){
@@ -363,9 +322,12 @@ app.post('/move', (request, response) => {
 	wx = request.body.you.body[0].x;
 	wy = request.body.you.body[0].y;
 	
+	var Wid = request.body.you.id;
+	var sheads = request.body.board.snakes;
 	
 	
 	
+	// -------------- CLOSEST FOOD POSITION ----------------
 	distance = 100;
 	// number FOOD left, and their positions.
 	// finds closest one based on manhattan distance
@@ -384,7 +346,11 @@ app.post('/move', (request, response) => {
 	
 	Board[closestfy][closestfx] = "O";
 	
+	// -------------- SNAKE HEALTH AND STRENGTHS ----------------
 	wlength = request.body.you.body.length;
+	wattack = request.body.you.body.length;
+	whealth = request.body.you.health;
+	
 	if (wlength >= 20) {
 		wlength = 20;
 	}
@@ -393,45 +359,27 @@ app.post('/move', (request, response) => {
 	ty = request.body.you.body[wlength-1].y;
 	//console.log(tx, ty);
 	
-	
-	
-	// Finding direction for closest food. Can change if not safe later.
-	if (Math.abs(closestfx - wx) > Math.abs(closestfy - wy)) { // horizontal
-		if ((closestfx - wx) < 0) { // left
-			if (safe_left(Board, wx, wy)) {
-				m = 'left';
-				//console.log("wide", m, "toward", closestfx, closestfy);
-			}
-		} else if ((closestfx - wx) > 0) { // right
-			if (safe_right(Board, wx, wy)) {
-				m = 'right';
-				//console.log("wide", m, "toward", closestfx, closestfy);
-			}
-		} else { //neither, on same column
-			if ((closestfy - wy) < 0) { // up
-				if (safe_up(Board, wx, wy)) {
-					m = 'up';
-					//console.log("wide", m, "toward", closestfx, closestfy);
-				}
-			} else if ((closestfy - wy) > 0) { // down
-				if (safe_down(Board, wx, wy)) {
-					m = 'down';
-					//console.log("wide", m, "toward", closestfx, closestfy);
-				}
-			}
+	// get lengths of all snakes and the stronget snake
+	var snake_healths = [];
+	for (var i=0; i<sheads.length; i++) {
+		if (sheads[i].id != Wid) {
+			snake_healths.push(sheads[i].body.length);
 		}
-	} else if (Math.abs(closestfx - wx) <= Math.abs(closestfy - wy)) { // vertical
-		if ((closestfy - wy) < 0) { // up
-			if (safe_up(Board, wx, wy, 'up', wlength)) {
-				m = 'up';
-				//console.log("wide", m, "toward", closestfx, closestfy);
-			}
-		} else if ((closestfy - wy) > 0) { // down
-			if (safe_down(Board, wx, wy)) {
-				m = 'down';
-				//console.log("wide", m, "toward", closestfx, closestfy);
-			}
-		} else { // neither, on same row
+	}
+	var strongest_snake = Math.max(snake_healths);
+	
+	if ((wlength < bwidth) || (whealth < 50) || (wlength < strongest_snake+1)) {
+		get_food = true;
+	} else {
+		get_food = false;
+	}
+	
+	
+	
+	// -------------------- MOVE TOWARD FOOD ---------------------
+	// Finding direction for closest food. Can change if not safe later.
+	if (get_food) {
+		if (Math.abs(closestfx - wx) > Math.abs(closestfy - wy)) { // horizontal
 			if ((closestfx - wx) < 0) { // left
 				if (safe_left(Board, wx, wy)) {
 					m = 'left';
@@ -442,129 +390,112 @@ app.post('/move', (request, response) => {
 					m = 'right';
 					//console.log("wide", m, "toward", closestfx, closestfy);
 				}
+			} else { //neither, on same column
+				if ((closestfy - wy) < 0) { // up
+					if (safe_up(Board, wx, wy)) {
+						m = 'up';
+						//console.log("wide", m, "toward", closestfx, closestfy);
+					}
+				} else if ((closestfy - wy) > 0) { // down
+					if (safe_down(Board, wx, wy)) {
+						m = 'down';
+						//console.log("wide", m, "toward", closestfx, closestfy);
+					}
+				}
+			}
+		} 
+		else if (Math.abs(closestfx - wx) <= Math.abs(closestfy - wy)) { // vertical
+			if ((closestfy - wy) < 0) { // up
+				if (safe_up(Board, wx, wy, 'up', wlength)) {
+					m = 'up';
+					//console.log("wide", m, "toward", closestfx, closestfy);
+				}
+			} else if ((closestfy - wy) > 0) { // down
+				if (safe_down(Board, wx, wy)) {
+					m = 'down';
+					//console.log("wide", m, "toward", closestfx, closestfy);
+				}
+			} else { // neither, on same row
+				if ((closestfx - wx) < 0) { // left
+					if (safe_left(Board, wx, wy)) {
+						m = 'left';
+						//console.log("wide", m, "toward", closestfx, closestfy);
+					}
+				} else if ((closestfx - wx) > 0) { // right
+					if (safe_right(Board, wx, wy)) {
+						m = 'right';
+						//console.log("wide", m, "toward", closestfx, closestfy);
+					}
+				}
 			}
 		}
 	}
 	
-	
-	
-	
-	
-	// Last check to avoid walls and . should be taken care of in the dfs.
-	/*
-	if (m == 'up' && !dfs(Board, wx, wy-1, wlength)) {
-		if (dfs(Board, wx-1, wy, wlength)) {
-			m = 'left';
-		} else if (dfs(Board, wx+1, wy, wlength)) {
-			m = 'right';
-		} else if (dfs(Board, wx, wy+1, wlength)) {
-			m = 'down';
-		}
-	} 
-	if (m == 'left' && !dfs(Board, wx-1, wy, wlength)) {
-		if (dfs(Board, wx, wy-1, wlength)) {
-			m = 'up';
-		} else if (dfs(Board, wx, wy+1, wlength)) {
-			m = 'down';
-		} else if (dfs(Board, wx+1, wy, wlength)) {
-			m = 'right';
-		}
-	} 
-	if (m == 'down' && !dfs(Board, wx, wy+1, wlength)) {
-		if (dfs(Board, wx-1, wy, wlength)) {
-			m = 'left';
-		} else if (dfs(Board, wx+1, wy, wlength)) {
-			m = 'right';
-		} else if (dfs(Board, wx, wy-1, wlength)) {
-			m = 'up';
-		}
-	} 
-	if (m == 'right' && !dfs(Board, wx+1, wy, wlength)) {
-		if (dfs(Board, wx, wy-1, wlength)) {
-			m = 'up';
-		} else if (dfs(Board, wx, wy+1, wlength)) {
-			m = 'down';
-		} else if (dfs(Board, wx-1, wy, wlength)) {
-			m = 'left';
-		}
+	// ------------ NEAR FOOD ------------
+	// strategy relies on whether other snakes are also close to that food
+	if (food_nearby(wx, wy, closestfx, closestfy)) {
+		// console.log("getting food");
 	}
 	
-	*/
 	
-	var turn = request.body.turn;
 	
-	// checking dfs
 	
-	if (safe(Board, wx, wy, m)) {
-		//console.log(turn, "move", m, "is SAFE");
-		let pass = 0;
-	} else {
-		//console.log(turn, "move", m, "is NOT safe");
-		let pass = 0;
-	}
 	
-	//console.log("checking dfs...");
-	if (dfs(Board, wx, wy, m, wlength, mstr[m])) {
-		let pass = 0;
-		//printboard(Board);
-	} else {
+	
+	// ------------------ DFS -------------------
+	// if direction is safe, continue. else choose a different path
+	if (!dfs(Board, wx, wy, m, wlength, mstr[m])) {
 		for (var i=0; i<3; i++) {
-			
 			if (dfs(Board, wx, wy, chmove[m][i], wlength, mstr[chmove[m][i]])) {
-				//console.log("before:", m);
 				m = chmove[m][i];
-				//console.log("changed to ", m);
-				i =10; // break out
-			} else {
-				//console.log(chmove[m][i], "NOT safe");
-				let pass = 0;
+				break; // break out. js probably has a break
 			}
 		}
-		
-		//printboard(Board, wx, wy, 'X');
 	}
 	
 	
 	
 	
-	// check head collision. if other snakes next to food, avoid
+	// --------------- ATTACK PLAN ----------------
+	if (head_nearby(sheads, wx, wy, Wid)) {
+		for (var i=0; i<sheads.length; i++){
+			if (Wid != sheads[i].id) {
+				if (wattack > sheads[i].body.length) {
+					var ex = sheads[i].body[0].x;
+					var ey = sheads[i].body[0].y;
+					//console.log("Wyrmhol (", wx, wy, ") is attacking (", ex, ey, ")");
+					var mfake = attack(Board, wx, wy, ex, ey);
+				}
+			}
+		}
+	}
 	
-	// avoid traps by doing a depth-first search. 
-	// if it exceeds own length, then it is safe to go that direction
-	// use a temporary board to be able to modify it inside the dfs
-	// BoardCopy = arrayClone(Board);
-	// depth = request.body.you.body.length;
-	// if (!dfs(BoardCopy, wx, wy, m, depth)) {
-	//	console.log("!!!!");
-	//}
 	
 	
-	// dfs(Board, wx, wy, m, wlength);
-	
-	
-	
+	// one last check. if this fails, Wyrmhol is doomed.
+	if (!safe(Board, wx, wy, m)) {
+		console.log(turn, "move", m, "is NOT safe, even after DFS. Gonna die!");
+	}
 	var picked = false;
-
-	//printboard(Board);
-	//printboard(BoardCopy);
-	//console.log(BoardCopy);
-
+	last = m
+	
+	
+	
+	
+	
+	// ================================================ END LOGIC
 	
 	// ------------------------------------------------
-	
-  // Response data
-  const data = {
-    move: m, // one of: ['up','down','left','right']
-  }
-	last = m;
-
+  // Response data: one of ['up','down','left','right']
+  const data = { move: m, }
   return response.json(data)
 })
 
 app.post('/end', (request, response) => {
   // NOTE: Any cleanup when a game is complete.
-	//print(response)
-	//console.log(segs)
+	//printboard(Board);
+	//console.log(request.body.board.snakes);
+	//console.log(request.body.you);
   return response.json({})
 })
 
